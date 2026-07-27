@@ -1,0 +1,17 @@
+{
+  "name": "macos-host-lock",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Serialize cooperating GitHub Actions jobs across repositories on one Mac.",
+  "license": "MIT",
+  "repository": "github:ajaxjiang96/macos-host-lock",
+  "type": "module",
+  "scripts": {
+    "package": "cp src/main.js dist/main.js && cp src/post.js dist/post.js && cp src/lib.js dist/lib.js",
+    "test": "node --test test/*.test.js",
+    "verify": "npm run package && npm test && cmp src/main.js dist/main.js && cmp src/post.js dist/post.js && cmp src/lib.js dist/lib.js"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

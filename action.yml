@@ -1,0 +1,26 @@
+name: macOS Host Lock
+description: Serialize cooperating GitHub Actions jobs across runner registrations and repositories on one Mac.
+author: Jiacheng Jiang
+branding:
+  icon: lock
+  color: gray-dark
+inputs:
+  lock-name:
+    description: Shared lock name. Every workflow on the host must use the same value.
+    required: false
+    default: ios-release
+  timeout-seconds:
+    description: Maximum time to wait for the lock.
+    required: false
+    default: '5400'
+  stale-seconds:
+    description: Age after which an abandoned lock may be recovered. Keep above the longest job timeout.
+    required: false
+    default: '10800'
+outputs:
+  wait-seconds:
+    description: Whole seconds spent waiting for the host lock.
+runs:
+  using: node24
+  main: dist/main.js
+  post: dist/post.js
