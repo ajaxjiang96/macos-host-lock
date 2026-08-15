@@ -48,6 +48,7 @@ async function main() {
       runId: process.env.GITHUB_RUN_ID,
       runAttempt: process.env.GITHUB_RUN_ATTEMPT,
       runnerName: process.env.RUNNER_NAME,
+      pid: process.ppid,
     },
   });
 

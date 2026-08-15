@@ -24,6 +24,17 @@ export function safeLockName(name) {
 
 const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 
+function processIsAlive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    if (error?.code === 'ESRCH') return false;
+    if (error?.code === 'EPERM') return true;
+    throw error;
+  }
+}
+
 export async function acquireHostLock({
   root,
   name,
@@ -34,6 +45,7 @@ export async function acquireHostLock({
   pollMs = 2000,
   now = () => Date.now(),
   wait = sleep,
+  isProcessAlive = processIsAlive,
 }) {
   await mkdir(root, {recursive: true, mode: 0o700});
   const lockDirectory = join(root, `${safeLockName(name)}.lock`);
@@ -60,7 +72,18 @@ export async function acquireHostLock({
       if (error?.code === 'ENOENT') continue;
       throw error;
     }
-    if (now() - lockStat.mtimeMs > staleMs) {
+    let ownerProcessIsDead = false;
+    try {
+      const currentOwner = JSON.parse(
+        await readFile(join(lockDirectory, 'owner.json'), 'utf8'),
+      );
+      ownerProcessIsDead = Number.isSafeInteger(currentOwner.pid) && !isProcessAlive(currentOwner.pid);
+    } catch (error) {
+      if (error?.code === 'ENOENT') continue;
+      if (!(error instanceof SyntaxError)) throw error;
+    }
+
+    if (ownerProcessIsDead || now() - lockStat.mtimeMs > staleMs) {
       const abandoned = `${lockDirectory}.stale-${randomUUID()}`;
       try {
         await rename(lockDirectory, abandoned);

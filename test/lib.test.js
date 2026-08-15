@@ -73,3 +73,27 @@ test('reports when it recovers an abandoned stale lock', async () => {
     await rm(root, {recursive: true, force: true});
   }
 });
+
+test('recovers immediately when the owning worker process has exited', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'macos-host-lock-test-'));
+  const lockDirectory = join(root, 'ios-release.lock');
+  try {
+    await mkdir(lockDirectory);
+    await writeFile(join(lockDirectory, 'owner.json'), '{"token":"abandoned","pid":123}\n');
+
+    const acquired = await acquireHostLock({
+      root,
+      name: 'ios-release',
+      token: 'replacement',
+      owner: {runId: '2'},
+      timeoutMs: 100,
+      staleMs: 60_000,
+      isProcessAlive: () => false,
+    });
+
+    assert.equal(acquired.recoveredStaleLock, true);
+    assert.equal(await releaseHostLock(acquired.lockDirectory, 'replacement'), true);
+  } finally {
+    await rm(root, {recursive: true, force: true});
+  }
+});
