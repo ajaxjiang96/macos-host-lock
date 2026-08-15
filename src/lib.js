@@ -38,6 +38,7 @@ export async function acquireHostLock({
   await mkdir(root, {recursive: true, mode: 0o700});
   const lockDirectory = join(root, `${safeLockName(name)}.lock`);
   const startedAt = now();
+  let recoveredStaleLock = false;
 
   for (;;) {
     try {
@@ -47,17 +48,24 @@ export async function acquireHostLock({
         `${JSON.stringify({...owner, token, acquiredAt: new Date(now()).toISOString()}, null, 2)}\n`,
         {encoding: 'utf8', mode: 0o600, flag: 'wx'},
       );
-      return {lockDirectory, waitedMs: now() - startedAt};
+      return {lockDirectory, waitedMs: now() - startedAt, recoveredStaleLock};
     } catch (error) {
       if (error?.code !== 'EEXIST') throw error;
     }
 
-    const lockStat = await stat(lockDirectory);
+    let lockStat;
+    try {
+      lockStat = await stat(lockDirectory);
+    } catch (error) {
+      if (error?.code === 'ENOENT') continue;
+      throw error;
+    }
     if (now() - lockStat.mtimeMs > staleMs) {
       const abandoned = `${lockDirectory}.stale-${randomUUID()}`;
       try {
         await rename(lockDirectory, abandoned);
         await rm(abandoned, {recursive: true, force: true});
+        recoveredStaleLock = true;
         continue;
       } catch (error) {
         if (!['ENOENT', 'EEXIST'].includes(error?.code)) throw error;

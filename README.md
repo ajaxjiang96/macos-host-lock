@@ -49,6 +49,8 @@ largest possible protected job.
 ## Output
 
 `wait-seconds` reports the whole number of seconds spent waiting.
+`recovered-stale-lock` is `true` when acquisition replaced an abandoned lock,
+so release reports can distinguish normal queueing from stale-state recovery.
 
 ## Safety model
 
