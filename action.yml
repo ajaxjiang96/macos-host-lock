@@ -20,6 +20,8 @@ inputs:
 outputs:
   wait-seconds:
     description: Whole seconds spent waiting for the host lock.
+  recovered-stale-lock:
+    description: Whether acquisition recovered an abandoned stale lock.
 runs:
   using: node24
   main: dist/main.js
